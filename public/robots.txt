@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /assistant
+Disallow: /assistant/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /my-orders
+Disallow: /track-order
+
+Sitemap: https://jt-qbpb.onrender.com/sitemap.xml

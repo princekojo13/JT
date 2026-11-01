@@ -13,6 +13,7 @@ import {
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
+import Seo from "./components/Seo";
 import Layout from "@/components/Layout";
 import { CartProvider } from "@/lib/cartContext";
 
@@ -362,6 +363,7 @@ function App() {
         <CartProvider>
           <Router>
             <ScrollToTop />
+            <Seo />
             <AppRoutes />
           </Router>
 
