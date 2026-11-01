@@ -1,0 +1,22 @@
+import { Link } from "react-router-dom";
+import { ArrowRight, BadgeCheck, Heart, Lightbulb, ShieldCheck, Sparkles } from "lucide-react";
+import storyArt from "@/assets/jt-story-art.svg";
+import { SITE_CONFIG } from "@/lib/siteConfig";
+
+const values = [
+  { icon: Heart, title: "Personal", description: "JT starts with a person and a point of view. Every part of the brand should feel considered and real." },
+  { icon: Sparkles, title: "A little different", description: "Good tech can still have character. JT brings together useful devices and a distinct sense of style." },
+  { icon: ShieldCheck, title: "Confidence matters", description: "Clear product details, visible stock and secure Mobile Money checkout help you shop with confidence." },
+  { icon: Lightbulb, title: "Always becoming", description: "The brand has room to grow into new ideas, projects and products, all in one place." },
+];
+
+export default function About() {
+  return (
+    <div className="bg-white">
+      <section className="bg-carbon py-16 text-white sm:py-24"><div className="mx-auto max-w-4xl px-4 text-center sm:px-6"><p className="mb-4 text-xs font-bold uppercase tracking-[.28em] text-pink">The brand behind the initials</p><h1 className="font-heading text-5xl font-bold tracking-tight sm:text-7xl">Meet <span className="text-pink">JT.</span></h1><p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/65">{SITE_CONFIG.tagline} JTPO_S is a personal brand with technology at its heart and space for everything still to come.</p></div></section>
+      <section className="py-14 sm:py-20"><div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8"><img src={storyArt} alt="JT, a brand built around you" className="w-full rounded-[2rem]" /><div><p className="mb-3 text-xs font-bold uppercase tracking-[.25em] text-pink">A story in progress</p><h2 className="font-heading text-3xl font-bold tracking-tight text-carbon sm:text-4xl">Not just what you buy.<br />The ideas behind it.</h2><div className="mt-5 space-y-4 text-sm leading-7 text-muted-foreground"><p>JT began with a simple intention: bring useful electronics and gadgets together with a brand people can recognise as their own. The initials matter because this is personal; JTPO_S is the signature.</p><p>The store is one part of that story. Alongside selected phones and gadgets, JT Originals will give the brand its own products and future projects a home.</p><p>As JT grows, this is where you can follow what is new, find something that fits your day, and stay close to what the brand is building.</p></div><Link to="/shop" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-carbon px-6 py-3.5 text-sm font-bold text-white transition hover:bg-pink hover:text-carbon">Explore the products <ArrowRight className="h-4 w-4" /></Link></div></div></section>
+      <section className="bg-[#F3F7FC] py-14 sm:py-20"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="mb-9 max-w-2xl"><p className="mb-3 text-xs font-bold uppercase tracking-[.25em] text-pink">The JT way</p><h2 className="font-heading text-3xl font-bold tracking-tight text-carbon sm:text-4xl">Made to keep moving.</h2></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{values.map(({ icon: Icon, title, description }) => <article key={title} className="rounded-2xl border border-border bg-white p-6"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF2FF] text-blue-700"><Icon className="h-5 w-5" /></span><h3 className="mt-5 font-heading text-lg font-bold text-carbon">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p></article>)}</div></div></section>
+      <section className="bg-carbon py-16 text-white"><div className="mx-auto max-w-3xl px-4 text-center"><BadgeCheck className="mx-auto h-8 w-8 text-pink" /><p className="mt-4 text-xs font-bold uppercase tracking-[.25em] text-pink">JTPO_S</p><h2 className="mt-3 font-heading text-3xl font-bold sm:text-4xl">Find your next everyday essential.</h2><p className="mt-4 text-white/60">Browse the latest electronics and get in touch if you need help finding a device.</p><Link to="/shop" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-pink px-7 py-4 text-sm font-bold uppercase tracking-wider text-carbon transition hover:bg-white">Shop JT <ArrowRight className="h-4 w-4" /></Link></div></section>
+    </div>
+  );
+}

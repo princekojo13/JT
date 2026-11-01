@@ -1,0 +1,28 @@
+project_id = "tcxrcqhmflgymhdsoreo"
+
+[functions.create-order]
+verify_jwt = false
+
+[functions.track-order]
+verify_jwt = false
+
+[functions.moolre-payment]
+verify_jwt = false
+
+[functions.moolre-webhook]
+verify_jwt = false
+
+[functions.store-assistant]
+verify_jwt = false
+
+[functions.request-guest-orders-link]
+verify_jwt = false
+
+[functions.search-location]
+verify_jwt = false
+
+[functions.customer-orders]
+verify_jwt = false
+
+[functions.remove-product-background]
+verify_jwt = true
