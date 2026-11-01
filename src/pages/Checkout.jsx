@@ -18,6 +18,22 @@ const PAYMENT_METHODS = {
   moolre: "moolre",
 };
 
+async function getFunctionInvokeErrorMessage(invokeError, fallback) {
+  const response = invokeError?.context;
+  if (response instanceof Response) {
+    try {
+      const body = await response.clone().json();
+      if (typeof body?.error === "string" && body.error.trim()) return body.error;
+    } catch {
+      // Fall back to a checkout-specific message if the function response is not JSON.
+    }
+  }
+
+  const message = invokeError?.message;
+  if (message && !message.toLowerCase().includes("non-2xx")) return message;
+  return fallback;
+}
+
 async function getCheckoutQuote(location, items) {
   const productIds = [...new Set(items.map((item) => item.product_id))];
   const [productsResult, settingsResult] = await Promise.all([
@@ -513,9 +529,16 @@ export default function Checkout() {
     const { data, error: invokeError } = await supabase.functions.invoke("moolre-payment", {
       body: { action: "otp", order_number: placedOrder.order_number, phone: moolrePaymentPhone, otpcode: moolreOtp.trim() },
     });
-    if (invokeError || !data?.success) throw new Error(data?.error || invokeError?.message || "The Mobile Money verification could not be submitted.");
+    if (invokeError) {
+      throw new Error(await getFunctionInvokeErrorMessage(
+        invokeError,
+        "Moolre could not verify that SMS code. Check it and try again.",
+      ));
+    }
+    if (!data?.success) throw new Error(data?.error || "Moolre could not verify that SMS code. Check it and try again.");
     setMoolreOtpRequired(Boolean(data.otp_required));
     setMoolreOtp("");
+    setError("");
     return data;
   };
 
@@ -523,34 +546,60 @@ export default function Checkout() {
     const { data, error: invokeError } = await supabase.functions.invoke("moolre-payment", {
       body: { action: "status", order_number: placedOrder.order_number, phone: moolrePaymentPhone },
     });
-    if (invokeError || !data?.success) throw new Error(data?.error || invokeError?.message || "Payment status could not be checked.");
-    if (data.payment_status) setPlacedOrder((current) => ({ ...current, payment_status: data.payment_status }));
+    if (invokeError) {
+      throw new Error(await getFunctionInvokeErrorMessage(
+        invokeError,
+        "Moolre's payment status could not be checked. Try again shortly.",
+      ));
+    }
+    if (!data?.success) throw new Error(data?.error || "Moolre's payment status could not be checked. Try again shortly.");
+    if (data.payment_status) {
+      setPlacedOrder((current) => ({
+        ...current,
+        payment_status: data.payment_status,
+        order_status: data.payment_status === "paid" ? "confirmed" : current.order_status,
+      }));
+      if (data.payment_status === "paid") setError("");
+    }
     return data;
   };
 
   if (placedOrder) {
-    const paymentLabel = placedOrder.payment_status === "paid" ? "Mobile Money paid" : "Mobile Money pending";
+    const isMoolreOrder = placedOrder.payment_method === PAYMENT_METHODS.moolre;
+    const isMoolrePaid = isMoolreOrder && placedOrder.payment_status === "paid";
+    const isMoolrePending = isMoolreOrder && !isMoolrePaid;
+    const paymentLabel = isMoolrePaid ? "Mobile Money paid" : "Mobile Money pending";
 
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-green-600" />
+          <div className={`w-20 h-20 ${isMoolrePending ? "bg-amber-100" : "bg-green-100"} rounded-full flex items-center justify-center mx-auto mb-6`}>
+            {isMoolrePending
+              ? <CreditCard className="w-10 h-10 text-amber-700" />
+              : <Check className="w-10 h-10 text-green-600" />}
           </div>
 
           <h1 className="font-heading text-3xl sm:text-4xl font-bold text-carbon">
-            Order Placed Successfully
+            {isMoolrePending
+              ? (moolreOtpRequired ? "Verify your number to continue" : "Payment pending")
+              : "Order confirmed"}
           </h1>
 
           <p className="mt-3 text-muted-foreground">
-            Thank you, {placedOrder.full_name}.
+            {isMoolrePending
+              ? "Your order will be confirmed after Moolre verifies your payment."
+              : `Thank you, ${placedOrder.full_name}.`}
           </p>
 
           {placedOrder.payment_method === PAYMENT_METHODS.moolre && (
             <div className="mt-5 border border-pink/20 bg-pink/5 p-4 text-left text-sm text-carbon">
-              {placedOrder.payment_status === "paid" ? "Moolre confirmed your payment." : "A Mobile Money request has been sent. Approve it on your phone, then check the payment status here."}
+              {isMoolrePaid
+                ? "Moolre confirmed your payment. Your order is now confirmed."
+                : moolreOtpRequired
+                  ? "Moolre sent an SMS verification code. Enter it below to request the payment prompt. No payment has been confirmed yet."
+                  : "A Mobile Money payment request has been sent. Approve the displayed amount in the prompt on your phone. Your order stays pending until Moolre confirms payment."}
               {moolreOtpRequired && <div className="mt-3 flex gap-2"><input aria-label="Mobile Money verification code" inputMode="numeric" autoComplete="one-time-code" maxLength={12} className="min-w-0 flex-1 rounded border border-blue-200 px-3 py-2" placeholder="SMS verification code" value={moolreOtp} onChange={(event) => setMoolreOtp(event.target.value)} /><button type="button" disabled={!moolreOtp.trim()} onClick={() => submitMoolreOtp().catch((error) => setError(error.message))} className="rounded bg-carbon px-4 py-2 font-bold text-white disabled:opacity-50">Verify</button></div>}
-              {!moolreOtpRequired && placedOrder.payment_status !== "paid" && <button type="button" onClick={() => checkMoolrePayment().catch((error) => setError(error.message))} className="mt-3 rounded bg-carbon px-4 py-2 font-bold text-white">Check payment status</button>}
+              {!moolreOtpRequired && !isMoolrePaid && <button type="button" onClick={() => checkMoolrePayment().catch((error) => setError(error.message))} className="mt-3 rounded bg-carbon px-4 py-2 font-bold text-white">I approved it — check payment</button>}
               {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}
             </div>
           )}

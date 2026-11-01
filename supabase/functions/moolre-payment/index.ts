@@ -75,7 +75,15 @@ Deno.serve(async (req) => {
       });
       const result = record(await response.json());
       const code = text(result.code, 20);
-      if (!response.ok || Number(result.status) !== 1 || !["TP14", "TR099"].includes(code)) return json({ success: false, error: "Moolre could not verify that code. Check it and try again." }, 502, origin);
+      if (!response.ok || Number(result.status) !== 1 || !["TP14", "TR099"].includes(code)) {
+        console.error("Moolre OTP verification failed:", response.status, code || "no response code");
+        const gatewayMessage = text(result.message, 180);
+        return json({
+          success: false,
+          error: gatewayMessage || "Moolre could not verify that SMS code. Check it and try again.",
+          gateway_code: code || null,
+        }, 502, origin);
+      }
       return json({ success: true, otp_required: code === "TP14", payment_pending: true }, 200, origin);
     }
 
