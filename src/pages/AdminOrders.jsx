@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Download,
   Loader2,
   Package,
   RefreshCw,
@@ -103,6 +104,19 @@ function totalsMatch(order) {
   const calculatedTotal = getCalculatedTotal(order);
 
   return Math.abs(storedTotal - calculatedTotal) < 0.01;
+}
+
+function exportCsv(orders) {
+  const columns = ["order_number", "created_at", "customer_name", "customer_email", "customer_phone", "delivery_region", "delivery_address", "payment_method", "payment_status", "order_status", "subtotal", "delivery_fee", "total"];
+  const escape = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const rows = [columns, ...orders.map((order) => columns.map((column) => order[column]))];
+  const blob = new Blob([`\uFEFF${rows.map((row) => row.map(escape).join(",")).join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `jt-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminOrders() {
@@ -392,7 +406,7 @@ export default function AdminOrders() {
       <AdminPageHeader
         title="Orders"
         description="Review payments, update fulfilment, and track delivery progress."
-        actions={<button type="button" onClick={() => loadOrders(true)} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold transition hover:border-[#c20f4d]/40 hover:bg-[#fff7fa] hover:text-[#3578F6] disabled:cursor-not-allowed disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />Refresh</button>}
+        actions={<div className="flex gap-2"><button type="button" onClick={() => exportCsv(filteredOrders)} disabled={loading || dataLoadError || filteredOrders.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Download className="h-4 w-4"/>Export CSV</button><button type="button" onClick={() => loadOrders(true)} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold transition hover:border-[#c20f4d]/40 hover:bg-[#fff7fa] hover:text-[#3578F6] disabled:cursor-not-allowed disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />Refresh</button></div>}
       />
 
       <main className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-9">

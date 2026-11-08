@@ -1,21 +1,24 @@
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, ShoppingBag, MessageCircle, ArrowLeft, ShieldCheck, Truck, Check, ChevronRight } from "lucide-react";
+import { Minus, Plus, ShoppingBag, MessageCircle, ArrowLeft, ShieldCheck, Truck, Check, ChevronRight, Heart } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useProduct, useProducts } from "@/lib/useProducts";
 import { useCart } from "@/lib/cartContext";
 import ProductCard from "@/components/ProductCard";
 import ReviewSection from "@/components/ReviewSection";
 import { cn } from "@/lib/utils";
+import { useWishlist } from "@/lib/wishlistContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const { product, loading: isLoading } = useProduct(id);
   const { addToCart } = useCart();
+  const wishlist = useWishlist();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState("");
 
   const { products: related = [] } = useProducts({ category: product?.category, limit: 5 });
 
@@ -51,9 +54,14 @@ export default function ProductDetail() {
   const interestLink = `/contact?product=${encodeURIComponent(product.id)}&name=${encodeURIComponent(product.name)}`;
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    addToCart(product, quantity, selectedVariant || product.variants?.[0] || "");
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    addToCart(product, quantity, selectedVariant || product.variants?.[0] || "");
+    navigate("/checkout");
   };
 
   const relatedProducts = (related || []).filter((p) => p.id !== product.id).slice(0, 4);
@@ -150,12 +158,14 @@ export default function ProductDetail() {
               </div>
             )}
 
+            {Array.isArray(product.variants) && product.variants.length > 0 && <label className="mb-5 block text-sm font-semibold">Choose an option<select value={selectedVariant || product.variants[0]} onChange={(event) => setSelectedVariant(event.target.value)} className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-3 font-normal">{product.variants.map((variant) => <option key={variant} value={variant}>{variant}</option>)}</select></label>}
+
             {product.sku && (
               <p className="text-xs text-muted-foreground mb-6">SKU: {product.sku}</p>
             )}
 
             {/* Purchase or availability request */}
-            {inStock ? <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            {inStock ? <div className="flex flex-col gap-3 mb-4">
               <div className="flex items-center border border-border">
                 <button
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -182,6 +192,8 @@ export default function ProductDetail() {
               >
                 {added ? <><Check className="w-4 h-4" /> Added to Cart</> : <><ShoppingBag className="w-4 h-4" /> Add to Cart</>}
               </button>
+              <button type="button" onClick={handleBuyNow} className="flex-1 h-12 flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white font-bold uppercase tracking-wider text-sm hover:bg-blue-700 transition-colors">Buy Now</button>
+              <button type="button" onClick={() => wishlist.toggle(product)} aria-pressed={wishlist.contains(product.id)} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold"><Heart className={`h-4 w-4 ${wishlist.contains(product.id) ? "fill-pink text-pink" : ""}`} /> Save</button>
             </div> : <Link to={interestLink} className="w-full h-12 flex items-center justify-center gap-2 bg-pink text-carbon font-bold uppercase tracking-wider text-sm hover:bg-carbon hover:text-white transition-colors mb-6"><MessageCircle className="w-4 h-4" /> Ask about availability</Link>}
 
             {/* Trust badges */}

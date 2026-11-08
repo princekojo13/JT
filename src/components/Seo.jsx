@@ -10,13 +10,16 @@ const PAGES = {
   "/shop": ["Shop Phones & Electronics in Ghana | JTPO_S", "Browse JT Originals and curated phones, electronics and gadgets. Shop online with secure Moolre checkout and delivery across Ghana."],
   "/about": ["About JTPO_S | Tech for the Life You’re Building", "Meet JT, a Ghanaian tech and lifestyle brand bringing phones, electronics and curated gadgets together in one place."],
   "/contact": ["Contact JTPO_S | Customer Support", "Get in touch with JTPO_S about phones, electronics, orders and product availability."],
+  "/privacy": ["Privacy Notice | JTPO_S", "How JTPO_S uses customer details for orders, payment and delivery."],
+  "/terms": ["Terms of Use | JTPO_S", "Terms for shopping with JTPO_S."],
+  "/returns": ["Returns and Order Issues | JTPO_S", "How to contact JTPO_S about a damaged, incomplete or incorrect order."],
   "/special-offers": ["Special Offers on Phones & Gadgets | JTPO_S", "Explore current deals on selected phones, electronics and gadgets at JTPO_S. Offers may change over time."],
   "/wholesale": ["Wholesale Electronics & Gadgets | JTPO_S", "Ask JTPO_S about wholesale phones, electronics and gadget orders across Ghana."],
   "/delivery": ["Delivery Information | JTPO_S Ghana", "Learn about delivery coverage, estimated delivery times and fees for JTPO_S orders across Ghana."],
   "/product": ["Phones, Electronics & Gadgets | JTPO_S", "Explore phones, electronics and gadgets from JT Originals and curated tech at JTPO_S."],
 };
 
-const PRIVATE_PREFIXES = ["/admin", "/assistant", "/cart", "/checkout", "/my-orders", "/track-order", "/admin-login", "/assistant-login", "/assistant-invite"];
+const PRIVATE_PREFIXES = ["/admin", "/assistant", "/cart", "/checkout", "/my-orders", "/track-order", "/wishlist", "/admin-login", "/assistant-login", "/assistant-invite"];
 
 function setMeta(attribute, key, content) {
   let element = document.head.querySelector(`meta[${attribute}="${key}"]`);

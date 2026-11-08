@@ -13,6 +13,61 @@ const ALLOWED_ORIGINS = new Set([
 const resultCache = new Map<string, { expiresAt: number; places: unknown[] }>();
 let lastRequestAt = 0;
 
+async function searchPhoton(query: string) {
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", `${query}, Ghana`);
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("lang", "en");
+  const response = await fetch(url, {
+    headers: { Accept: "application/json", "User-Agent": "JTPO-S-Store/1.0" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) return [];
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || !("features" in payload) || !Array.isArray(payload.features)) return [];
+  return payload.features.flatMap((feature: unknown, index: number) => {
+    if (!feature || typeof feature !== "object") return [];
+    const item = feature as Record<string, unknown>;
+    const geometry = item.geometry && typeof item.geometry === "object" ? item.geometry as Record<string, unknown> : {};
+    const properties = item.properties && typeof item.properties === "object" ? item.properties as Record<string, unknown> : {};
+    const coordinates = Array.isArray(geometry.coordinates) ? geometry.coordinates : [];
+    const lon = Number(coordinates[0]);
+    const lat = Number(coordinates[1]);
+    const country = typeof properties.country === "string" ? properties.country : "";
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.5 || lat > 11.5 || lon < -3.5 || lon > 1.5) return [];
+    if (country && country.toLocaleLowerCase() !== "ghana") return [];
+    const displayName = [...new Set([
+      properties.name,
+      properties.city || properties.district || properties.county,
+      properties.state,
+      country || "Ghana",
+    ].filter((part): part is string => typeof part === "string" && part.trim().length > 0))].join(", ");
+    if (!displayName) return [];
+    return [{ place_id: String(properties.osm_id || `photon-${index}-${lat}-${lon}`), lat, lon, display_name: displayName }];
+  });
+}
+
+async function searchNominatim(query: string) {
+  const params = new URLSearchParams({
+    q: `${query}, Ghana`, format: "jsonv2", countrycodes: "gh",
+    viewbox: "-3.5,11.5,1.5,4.5", bounded: "1", "accept-language": "en", limit: "5",
+  });
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+    headers: { Accept: "application/json", "Accept-Language": "en", "User-Agent": "JTPO-S-Store/1.0" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) return [];
+  const data: unknown = await response.json();
+  return Array.isArray(data) ? data.flatMap((value: unknown) => {
+    if (!value || typeof value !== "object") return [];
+    const place = value as Record<string, unknown>;
+    const lat = Number(place.lat); const lon = Number(place.lon);
+    const displayName = typeof place.display_name === "string" ? place.display_name : "";
+    if (!displayName || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4.5 || lat > 11.5 || lon < -3.5 || lon > 1.5) return [];
+    return [{ place_id: String(place.place_id || `${place.osm_type || "place"}-${place.osm_id || `${lat}-${lon}`}`), lat, lon, display_name: displayName }];
+  }) : [];
+}
+
 function headersFor(origin: string | null) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -62,45 +117,9 @@ Deno.serve(async (req: Request) => {
   try {
     const waitMs = 1_100 - (Date.now() - lastRequestAt);
     if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
-    const params = new URLSearchParams({
-      q: `${query}, Ghana`,
-      format: "jsonv2",
-      countrycodes: "gh",
-      viewbox: "-3.5,11.5,1.5,4.5",
-      bounded: "1",
-      "accept-language": "en",
-      limit: "5",
-    });
     lastRequestAt = Date.now();
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-      headers: {
-        Accept: "application/json",
-        "Accept-Language": "en",
-        "User-Agent": "JTPO-S-Store/1.0",
-      },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (response.status === 429) {
-      return respond({ error: "Location search is busy. Please wait a moment and try again." }, 429, headers);
-    }
-    if (!response.ok) return respond({ error: "Location search is temporarily unavailable." }, 502, headers);
-
-    const data: unknown = await response.json();
-    const places = Array.isArray(data) ? data.flatMap((value) => {
-      if (!value || typeof value !== "object") return [];
-      const place = value as Record<string, unknown>;
-      const lat = Number(place.lat);
-      const lon = Number(place.lon);
-      const displayName = typeof place.display_name === "string" ? place.display_name : "";
-      if (!displayName || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-      if (lat < 4.5 || lat > 11.5 || lon < -3.5 || lon > 1.5) return [];
-      return [{
-        place_id: String(place.place_id || `${place.osm_type || "place"}-${place.osm_id || `${lat}-${lon}`}`),
-        lat,
-        lon,
-        display_name: displayName,
-      }];
-    }) : [];
+    let places = await searchPhoton(query);
+    if (!places.length) places = await searchNominatim(query);
 
     resultCache.set(cacheKey, { expiresAt: Date.now() + 60 * 60 * 1000, places });
     if (resultCache.size > 500) {

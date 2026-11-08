@@ -17,7 +17,7 @@ export function CartProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = useCallback((product, quantity = 1) => {
+  const addToCart = useCallback((product, quantity = 1, variantName = "") => {
     const productStock = Number(product.stock);
     const stock = Number.isFinite(productStock) ? Math.max(0, productStock) : Infinity;
     if (stock <= 0) return;
@@ -28,13 +28,14 @@ export function CartProvider({ children }) {
       if (existing) {
         const newQty = Math.min(existing.quantity + requestedQuantity, max);
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: newQty } : i
+          i.product_id === product.id ? { ...i, quantity: newQty, variant_name: variantName } : i
         );
       }
       return [
         ...prev,
         {
           product_id: product.id,
+          variant_name: variantName,
           name: product.name,
           price: product.sale_price || product.price,
           quantity: Math.min(requestedQuantity, max),
@@ -45,10 +46,10 @@ export function CartProvider({ children }) {
     });
   }, []);
 
-  const updateQuantity = useCallback((productId, quantity) => {
+  const updateQuantity = useCallback((productId, quantity, variantName = "") => {
     if (quantity < 1) return;
     setItems((prev) => prev.map((i) => {
-      if (i.product_id !== productId) return i;
+      if (i.product_id !== productId || (i.variant_name || "") !== variantName) return i;
       const max = typeof i.stock === "number" ? i.stock : Infinity;
       if (max <= 0) return i;
       return { ...i, quantity: Math.min(quantity, max) };
@@ -69,8 +70,8 @@ export function CartProvider({ children }) {
     }));
   }, []);
 
-  const removeFromCart = useCallback((productId) => {
-    setItems((prev) => prev.filter((i) => i.product_id !== productId));
+  const removeFromCart = useCallback((productId, variantName = "") => {
+    setItems((prev) => prev.filter((i) => i.product_id !== productId || (i.variant_name || "") !== variantName));
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);

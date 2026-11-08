@@ -30,6 +30,9 @@ import Wholesale from "@/pages/Wholesale";
 import Delivery from "@/pages/Delivery";
 import TrackOrder from "@/pages/TrackOrder";
 import MyOrders from "@/pages/MyOrders";
+import Wishlist from "@/pages/Wishlist";
+import { WishlistProvider } from "@/lib/wishlistContext";
+import Policies from "@/pages/Policies";
 
 // Admin
 import Login from "@/pages/Login";
@@ -257,6 +260,11 @@ function AppRoutes() {
           element={<Cart />}
         />
 
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/privacy" element={<Policies kind="privacy" />} />
+        <Route path="/terms" element={<Policies kind="terms" />} />
+        <Route path="/returns" element={<Policies kind="returns" />} />
+
         <Route
           path="/checkout"
           element={<Checkout />}
@@ -361,11 +369,13 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <CartProvider>
+          <WishlistProvider>
           <Router>
             <ScrollToTop />
             <Seo />
             <AppRoutes />
           </Router>
+          </WishlistProvider>
 
           <Toaster />
         </CartProvider>

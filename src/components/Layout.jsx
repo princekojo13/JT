@@ -17,13 +17,11 @@ const PAGE_TITLES = {
   "/delivery": "Delivery Information",
   "/track-order": "Track Your Order",
   "/my-orders": "My Orders",
+  "/wishlist": "Saved for Later",
 };
 
 export default function Layout() {
   const { pathname } = useLocation();
-  const hideWhatsApp =
-    ["/cart", "/checkout", "/contact", "/track-order", "/my-orders", "/wholesale"].includes(pathname) ||
-    pathname.startsWith("/product/");
 
   useEffect(() => {
     const pageTitle =
@@ -44,7 +42,7 @@ export default function Layout() {
 
       <Footer />
 
-      {!hideWhatsApp && <WhatsAppFloat />}
+      <WhatsAppFloat />
     </div>
   );
 }

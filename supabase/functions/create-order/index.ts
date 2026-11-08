@@ -92,22 +92,24 @@ async function createOrderQuote(
     const item = record(value);
     const productId = text(item.product_id ?? item.productId ?? item.id, 40).toLowerCase();
     const quantity = number(item.quantity ?? item.qty);
+    const variantName = text(item.variant_name, 100);
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) ||
       !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100
     ) {
       return respond({ success: false, error: "One or more cart items are invalid." }, 400, headers);
     }
-    const totalQuantity = (quantities.get(productId) || 0) + quantity;
+    const lineKey = `${productId}|${variantName}`;
+    const totalQuantity = (quantities.get(lineKey) || 0) + quantity;
     if (totalQuantity > 100) {
       return respond({ success: false, error: "Quantity must be between 1 and 100 per product." }, 400, headers);
     }
-    quantities.set(productId, totalQuantity);
+    quantities.set(lineKey, totalQuantity);
   }
 
-  const productIds = [...quantities.keys()];
+  const productIds = [...new Set([...quantities.keys()].map((key) => key.split("|")[0]))];
   const [productsResult, settingsResult] = await Promise.all([
-    db.from("products").select("id,price,stock_quantity").in("id", productIds).eq("active", true),
+    db.from("products").select("id,price,stock_quantity,variants").in("id", productIds).eq("active", true),
     db.from("store_settings").select("max_delivery_distance_km").eq("id", true).maybeSingle(),
   ]);
 
@@ -121,10 +123,17 @@ async function createOrderQuote(
     return respond({ success: false, error: "One or more items are no longer available. Refresh your cart and try again." }, 409, headers);
   }
 
-  for (const product of products) {
-    const quantity = quantities.get(product.id) || 0;
+  const productById = new Map(products.map((product) => [product.id, product]));
+  for (const [lineKey, lineQuantity] of quantities) {
+    const [productId, variantName] = lineKey.split("|");
+    const product = productById.get(productId);
+    const options = Array.isArray(product?.variants) ? product.variants : [];
+    if ((options.length > 0 && !options.includes(variantName)) || (options.length === 0 && variantName)) {
+      return respond({ success: false, error: "One of the selected product options is no longer available. Please update your cart." }, 409, headers);
+    }
+    const combinedQuantity = [...quantities.entries()].filter(([key]) => key.startsWith(`${productId}|`)).reduce((sum, [, count]) => sum + count, 0);
     const stock = Math.max(0, Number(product.stock_quantity) || 0);
-    if (quantity > stock) {
+    if (combinedQuantity > stock) {
       return respond({ success: false, error: "Your cart quantity exceeds the available stock. Please update your cart." }, 409, headers);
     }
   }
@@ -135,7 +144,7 @@ async function createOrderQuote(
     return respond({ success: false, error: "We couldn't calculate your order total. Please try again." }, 503, headers);
   }
   const subtotalValue = [...quantities.entries()].reduce(
-    (sum, [productId, quantity]) => sum + (priceById.get(productId) ?? 0) * quantity,
+    (sum, [lineKey, quantity]) => sum + (priceById.get(lineKey.split("|")[0]) ?? 0) * quantity,
     0,
   );
   if (!Number.isFinite(subtotalValue) || subtotalValue < 0) {
@@ -176,10 +185,12 @@ async function createOrderQuote(
       total,
       distance_km: distanceKm,
       currency: "GHS",
-      items: [...quantities.entries()].map(([productId, quantity]) => {
+      items: [...quantities.entries()].map(([lineKey, quantity]) => {
+        const [productId, variant_name] = lineKey.split("|");
         const unitPrice = priceById.get(productId) ?? 0;
         return {
           product_id: productId,
+          variant_name,
           quantity,
           unit_price: unitPrice,
           line_total: Math.round((unitPrice * quantity + Number.EPSILON) * 100) / 100,
@@ -295,6 +306,7 @@ Deno.serve(async (req: Request) => {
       return {
         product_id: text(item.product_id ?? item.productId ?? item.id, 40),
         quantity: number(item.quantity ?? item.qty),
+        variant_name: text(item.variant_name, 100),
       };
     });
 
@@ -323,7 +335,7 @@ Deno.serve(async (req: Request) => {
     const requestedProductIds = [...new Set(items.map((item) => item.product_id))];
     const { data: activeProducts, error: productError } = await db
       .from("products")
-      .select("id,stock_quantity")
+      .select("id,stock_quantity,variants")
       .in("id", requestedProductIds)
       .eq("active", true);
     if (productError) {
@@ -338,6 +350,14 @@ Deno.serve(async (req: Request) => {
         409,
         headers,
       );
+    }
+
+    const productById = new Map((activeProducts || []).map((product) => [product.id, product]));
+    for (const item of items) {
+      const options = productById.get(item.product_id)?.variants || [];
+      if ((options.length > 0 && !options.includes(item.variant_name)) || (options.length === 0 && item.variant_name)) {
+        return respond({ success: false, error: "One of the selected product options is no longer available. Please update your cart." }, 409, headers);
+      }
     }
 
     const productsById = new Map((activeProducts || []).map((product) => [product.id, product]));
@@ -395,6 +415,25 @@ Deno.serve(async (req: Request) => {
         customerError ? 400 : 500,
         headers,
       );
+    }
+
+    if (items.some((item) => item.variant_name)) {
+      const orderIdForOptions = text(record(orderData).order_id, 40);
+      const { data: savedItems, error: savedItemsError } = await db.from("order_items")
+        .select("id,product_id,product_name_snapshot")
+        .eq("order_id", orderIdForOptions);
+      if (savedItemsError || !savedItems) {
+        console.error("Order option details could not be recorded.");
+        return respond({ success: false, error: "We couldn't save your selected product option. Contact the store before retrying." }, 500, headers);
+      }
+      const optionByProduct = new Map(items.map((item) => [item.product_id, item.variant_name]));
+      for (const line of savedItems) {
+        const option = optionByProduct.get(line.product_id);
+        if (option) {
+          const { error: optionError } = await db.from("order_items").update({ product_name_snapshot: `${line.product_name_snapshot} — ${option}` }).eq("id", line.id);
+          if (optionError) throw optionError;
+        }
+      }
     }
 
     const created = record(orderData);

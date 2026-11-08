@@ -29,6 +29,12 @@ const DEFAULT_SETTINGS = {
   moolre_enabled: true,
   store_open: true,
   maintenance_mode: false,
+  hero_eyebrow: "Tech for the life you’re building",
+  hero_title: "Technology meets your own story.",
+  hero_copy: "Your next device, your next idea, your next move. Discover standout electronics selected for the way you live, work and create.",
+  hero_image_url: "",
+  promo_banner_text: "",
+  promo_banner_link: "/special-offers",
 };
 
 const TEXT_FIELDS = [
@@ -39,6 +45,12 @@ const TEXT_FIELDS = [
   ["whatsapp", "WhatsApp number"],
   ["domain", "Website domain"],
   ["address", "Business address"],
+  ["hero_eyebrow", "Homepage banner eyebrow"],
+  ["hero_title", "Homepage banner headline"],
+  ["hero_copy", "Homepage banner description"],
+  ["hero_image_url", "Homepage banner image URL"],
+  ["promo_banner_text", "Promotion announcement (optional)"],
+  ["promo_banner_link", "Promotion link (optional)"],
 ];
 const SOCIAL_FIELDS = [
   ["snapchat", "Snapchat"],
@@ -171,13 +183,19 @@ export default function AdminSettings() {
         <form onSubmit={saveSettings} className="space-y-6">
           <SettingsSection title="Business details" description="These details are shown around the customer-facing store.">
             <div className="grid gap-5 md:grid-cols-2">
-              {TEXT_FIELDS.map(([field, label, type]) => <Field key={field} label={label} type={type} value={settings[field] ?? ""} onChange={(value) => updateField(field, value)} />)}
+              {TEXT_FIELDS.filter(([field]) => !field.startsWith("hero_") && !field.startsWith("promo_banner_")).map(([field, label, type]) => <Field key={field} label={label} type={type} value={settings[field] ?? ""} onChange={(value) => updateField(field, value)} />)}
             </div>
           </SettingsSection>
 
           <SettingsSection title="Social links" description="Add the social accounts customers should find.">
             <div className="grid gap-5 md:grid-cols-2">
               {SOCIAL_FIELDS.map(([field, label]) => <Field key={field} label={label} value={settings[field] ?? ""} onChange={(value) => updateField(field, value)} />)}
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title="Homepage promotions" description="Control the homepage hero and optional promotion strip.">
+            <div className="grid gap-5 md:grid-cols-2">
+              {TEXT_FIELDS.filter(([field]) => field.startsWith("hero_") || field.startsWith("promo_banner_")).map(([field, label]) => <Field key={field} label={label} value={settings[field] ?? ""} onChange={(value) => updateField(field, value)} />)}
             </div>
           </SettingsSection>
 

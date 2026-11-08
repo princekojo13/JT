@@ -59,7 +59,7 @@ function ProductGrid({ products, loading, emptyTitle, emptyCopy }) {
 }
 
 export default function Home() {
-  const { brand_name: brandName } = useStoreSettings();
+  const { brand_name: brandName, hero_eyebrow: heroEyebrow, hero_title: heroTitle, hero_copy: heroCopy, hero_image_url: heroImageUrl, promo_banner_text: promoBannerText, promo_banner_link: promoBannerLink } = useStoreSettings();
   const originals = useProducts({ collectionType: "jt_original", limit: 8 });
   const curated = useProducts({ collectionType: "curated", limit: 8 });
   const featured = useProducts({ featured: true, limit: 8 });
@@ -68,13 +68,14 @@ export default function Home() {
 
   return (
     <div className="bg-white">
+      {promoBannerText && <Link to={promoBannerLink || "/special-offers"} className="block bg-blue-700 px-4 py-3 text-center text-sm font-semibold text-white">{promoBannerText}</Link>}
       <section className="relative overflow-hidden bg-carbon text-white">
         <div className="absolute -left-36 top-12 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="mx-auto grid max-w-7xl items-center gap-4 px-4 py-12 sm:px-6 sm:py-16 lg:min-h-[660px] lg:grid-cols-[1.02fr_.98fr] lg:px-8 lg:py-16">
           <div className="relative z-10 max-w-2xl py-6 lg:py-10">
-            <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/[0.05] px-4 py-2 text-xs font-semibold tracking-[0.18em] text-white/80"><span className="h-2 w-2 rounded-full bg-pink shadow-[0_0_16px_#68c5ff]" />{brandName} <span className="text-white/30">/</span> JTPO_S</div>
-            <h1 className="max-w-2xl font-heading text-5xl font-bold leading-[.99] tracking-[-.05em] text-balance sm:text-6xl lg:text-7xl">Tech for the life <span className="text-pink">you’re building.</span></h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-white/65 sm:text-lg">Your next device, your next idea, your next move. Discover standout electronics selected for the way you live, work and create.</p>
+            <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/[0.05] px-4 py-2 text-xs font-semibold tracking-[0.18em] text-white/80"><span className="h-2 w-2 rounded-full bg-pink shadow-[0_0_16px_#68c5ff]" />{brandName} <span className="text-white/30">/</span> {heroEyebrow || "JTPO_S"}</div>
+            <h1 className="max-w-2xl font-heading text-5xl font-bold leading-[.99] tracking-[-.05em] text-balance sm:text-6xl lg:text-7xl">{heroTitle || "Technology meets your own story."}</h1>
+            <p className="mt-6 max-w-lg text-base leading-7 text-white/65 sm:text-lg">{heroCopy}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/shop" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-pink px-7 text-sm font-extrabold uppercase tracking-[.12em] text-carbon transition hover:bg-white">Shop the collection <ArrowRight className="h-4 w-4" /></Link>
               <Link to="/about" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-white/20 px-7 text-sm font-bold text-white transition hover:border-white/70">Discover JT <ArrowDownRight className="h-4 w-4" /></Link>
@@ -87,7 +88,7 @@ export default function Home() {
           </div>
           <div className="relative mx-auto w-full max-w-[560px] lg:ml-auto lg:mr-0">
             <div className="absolute inset-10 rounded-full bg-blue-400/10 blur-3xl" />
-            <img src={heroArt} alt="JT devices against a deep obsidian blue backdrop" className="relative w-full rounded-[2rem] shadow-2xl shadow-black/40" />
+            <img src={heroImageUrl || heroArt} alt="JT devices against a deep obsidian blue backdrop" className="relative w-full rounded-[2rem] shadow-2xl shadow-black/40" />
             <div className="absolute -bottom-2 left-4 rounded-xl border border-white/15 bg-carbon/80 px-4 py-3 shadow-xl backdrop-blur sm:bottom-8 sm:-left-8"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-white/45">The JT point of view</p><p className="mt-1 font-heading text-sm font-bold">Personal tech. Personal style.</p></div>
           </div>
         </div>

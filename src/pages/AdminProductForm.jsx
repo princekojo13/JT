@@ -28,6 +28,7 @@ const EMPTY_FORM = {
   category: FALLBACK_CATEGORY,
   collection_type: "curated",
   brand_note: "",
+  variants: "",
   price: "",
   compare_at_price: "",
   sku: "",
@@ -139,6 +140,7 @@ export default function AdminProductForm() {
             FALLBACK_CATEGORY,
           collection_type: data.collection_type || "curated",
           brand_note: data.brand_note || "",
+          variants: Array.isArray(data.variants) ? data.variants.join("\n") : "",
           price: data.price ?? "",
           compare_at_price: data.compare_at_price ?? "",
           sku: data.sku || "",
@@ -232,6 +234,7 @@ export default function AdminProductForm() {
         .split(/[\n,]+/)
         .map((url) => url.trim())
         .filter(Boolean);
+      const variants = [...new Set(form.variants.split(/[\n,]+/).map((value) => value.trim()).filter(Boolean))].slice(0, 20);
       const lowStockThreshold = Number(form.low_stock_threshold);
 
       if (!name) {
@@ -306,6 +309,7 @@ export default function AdminProductForm() {
         category,
         collection_type: form.collection_type,
         brand_note: form.brand_note.trim() || null,
+        variants,
         price,
         compare_at_price: compareAtPrice,
         sku: form.sku.trim() || null,
@@ -666,9 +670,7 @@ export default function AdminProductForm() {
                     JPEG, PNG, WebP, or AVIF. Maximum size 5 MB.
                   </p>
                   {selectedImageFile && (
-                    <p className="mt-2 truncate text-sm text-black/60">
-                      Selected: {selectedImageFile.name}
-                    </p>
+                    <p className="mt-2 truncate text-sm text-black/60">Selected: {selectedImageFile.name}</p>
                   )}
                 </div>
               ) : (
@@ -709,6 +711,9 @@ export default function AdminProductForm() {
                 </Field>
                 <Field label="Brand and model notes" hint="Optional product information.">
                   <input value={form.brand_note} onChange={(event) => updateField("brand_note", event.target.value)} className="admin-input" maxLength={180} placeholder="Model, colour or compatibility" />
+                </Field>
+                <Field label="Selectable options" hint="Optional: add colours, storage sizes or models, one per line. Stock is tracked per product, not per option." className="md:col-span-2">
+                  <textarea value={form.variants} onChange={(event) => updateField("variants", event.target.value)} className="admin-input min-h-24" placeholder={"Midnight Blue\nSilver\n128 GB"} />
                 </Field>
               </div>
             </div>

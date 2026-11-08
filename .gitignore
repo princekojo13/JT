@@ -6,6 +6,7 @@
 # Local Vite files
 .vite
 *.local
+supabase/.temp/
 
 # Logs
 logs/

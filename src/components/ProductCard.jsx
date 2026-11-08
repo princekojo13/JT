@@ -1,16 +1,21 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { ShoppingBag, Minus, Plus, MessageCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingBag, Minus, Plus, MessageCircle, Heart } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cartContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useWishlist } from "@/lib/wishlistContext";
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const wishlist = useWishlist();
+  const saved = wishlist.contains(product.id);
   const [open, setOpen] = useState(false);
   const [qty, setQty] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || "");
   const compareAtPrice = Number(product.compare_at_price);
   const currentPrice = Number(product.price);
   const onSale = Number.isFinite(compareAtPrice) && compareAtPrice > currentPrice;
@@ -25,9 +30,16 @@ export default function ProductCard({ product }) {
   };
 
   const confirmAdd = () => {
-    addToCart(product, qty);
+    addToCart(product, qty, selectedVariant);
     setOpen(false);
     setQty(1);
+  };
+
+  const buyNow = () => {
+    addToCart(product, qty, selectedVariant);
+    setOpen(false);
+    setQty(1);
+    navigate("/checkout");
   };
 
   return (
@@ -68,6 +80,9 @@ export default function ProductCard({ product }) {
               </span>
             )}
           </div>
+          <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); wishlist.toggle(product); }} aria-label={saved ? "Remove from saved items" : "Save for later"} aria-pressed={saved} className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#07131e] shadow transition hover:scale-105">
+            <Heart className={`h-5 w-5 ${saved ? "fill-pink text-pink" : ""}`} />
+          </button>
         </div>
 
         <div className="p-2.5 sm:p-4 flex flex-col flex-1">
@@ -117,6 +132,7 @@ export default function ProductCard({ product }) {
                 <p className="text-sm font-bold text-pink">₵{effectivePrice.toFixed(2)}</p>
               </div>
             </div>
+            {Array.isArray(product.variants) && product.variants.length > 0 && <label className="block text-sm font-medium">Option<select value={selectedVariant || product.variants[0]} onChange={(event) => setSelectedVariant(event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2">{product.variants.map((variant) => <option key={variant}>{variant}</option>)}</select></label>}
             <div>
               <p className="text-xs uppercase tracking-wider font-semibold text-carbon mb-2">Quantity</p>
               <div className="flex items-center border border-border w-fit">
@@ -148,6 +164,7 @@ export default function ProductCard({ product }) {
             <Button onClick={confirmAdd} className="bg-pink text-white hover:bg-carbon">
               Add to Cart
             </Button>
+            <Button onClick={buyNow} className="bg-blue-600 text-white hover:bg-blue-700">Buy Now</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

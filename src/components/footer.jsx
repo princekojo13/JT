@@ -30,6 +30,10 @@ const HELP_LINKS = [
   { label: "Track Order", path: "/track-order" },
   { label: "About Us", path: "/about" },
   { label: "Contact", path: "/contact" },
+  { label: "Saved items", path: "/wishlist" },
+  { label: "Privacy", path: "/privacy" },
+  { label: "Terms", path: "/terms" },
+  { label: "Returns", path: "/returns" },
 ];
 
 function FooterLinks({ title, links }) {

@@ -112,7 +112,7 @@ export default function Cart() {
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
-            <div key={item.product_id} className="flex gap-4 border border-border p-4">
+            <div key={`${item.product_id}:${item.variant_name || ""}`} className="flex gap-4 border border-border p-4">
               <Link to={`/product/${item.product_id}`} className="w-24 h-24 sm:w-28 sm:h-28 bg-london overflow-hidden shrink-0">
                 {item.image ? (
                   <Image src={item.image} alt={item.name} className="w-full h-full object-cover" fittingType="fill" />
@@ -126,18 +126,19 @@ export default function Cart() {
                     {item.name}
                   </Link>
                   <button
-                    onClick={() => removeFromCart(item.product_id)}
+                    onClick={() => removeFromCart(item.product_id, item.variant_name || "")}
                     className="text-muted-foreground hover:text-red-600 transition-colors shrink-0"
                     aria-label="Remove item"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+                {item.variant_name && <p className="mt-1 text-xs text-blue-700">Option: {item.variant_name}</p>}
                 <p className="text-sm text-muted-foreground mt-1">₵{item.price.toFixed(2)} each</p>
                 <div className="flex items-center justify-between mt-auto pt-3">
                   <div className="flex items-center border border-border">
                     <button
-                      onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.product_id, item.quantity - 1, item.variant_name || "")}
                       disabled={Number(item.stock) <= 0}
                       className="w-9 h-9 flex items-center justify-center hover:bg-london transition-colors"
                       aria-label="Decrease"
@@ -146,7 +147,7 @@ export default function Cart() {
                     </button>
                     <span className="w-10 text-center text-sm font-semibold">{item.quantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.product_id, item.quantity + 1, item.variant_name || "")}
                       disabled={Number(item.stock) <= 0 || item.quantity >= Number(item.stock)}
                       className="w-9 h-9 flex items-center justify-center hover:bg-london transition-colors"
                       aria-label="Increase"

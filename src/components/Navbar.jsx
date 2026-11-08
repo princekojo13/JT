@@ -9,6 +9,7 @@ import {
   Package,
   Pill,
   Search,
+  Heart,
   Scissors,
   ShoppingBag,
   Smartphone,
@@ -211,6 +212,14 @@ export default function Navbar() {
               >
                 <Search className="h-5 w-5" />
               </button>
+
+              <Link
+                to="/wishlist"
+                className="relative rounded-md p-2 transition-colors hover:bg-london"
+                aria-label="Saved items"
+              >
+                <Heart className="h-5 w-5" />
+              </Link>
 
               <Link
                 to="/cart"

@@ -17,13 +17,19 @@ const DEFAULT_SETTINGS = {
   facebook: "",
   tiktok: "",
   x: "",
+  hero_eyebrow: "Tech for the life you’re building",
+  hero_title: "Technology meets your own story.",
+  hero_copy: "Your next device, your next idea, your next move. Discover standout electronics selected for the way you live, work and create.",
+  hero_image_url: "",
+  promo_banner_text: "",
+  promo_banner_link: "/special-offers",
 };
 
 async function fetchStoreSettings() {
   const { data, error } = await supabase
     .from("store_settings")
     .select(
-      "brand_name:store_name,tagline,email,phone,whatsapp,domain,snapchat,instagram,facebook,tiktok,x"
+      "brand_name:store_name,tagline,email,phone,whatsapp,domain,snapchat,instagram,facebook,tiktok,x,hero_eyebrow,hero_title,hero_copy,hero_image_url,promo_banner_text,promo_banner_link"
     )
     .eq("id", true)
     .maybeSingle();

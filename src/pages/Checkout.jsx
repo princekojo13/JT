@@ -39,7 +39,7 @@ async function getCheckoutQuote(location, items) {
   const [productsResult, settingsResult] = await Promise.all([
     supabase
       .from("products")
-      .select("id,price,stock_quantity")
+      .select("id,price,stock_quantity,variants")
       .in("id", productIds)
       .eq("active", true),
     supabase
@@ -63,6 +63,7 @@ async function getCheckoutQuote(location, items) {
   if (items.some((item) => Number(productById.get(item.product_id)?.stock_quantity) < Number(item.quantity))) {
     throw new Error("An item in your cart is out of stock or no longer available in that quantity. Return to your cart to update it.");
   }
+  if (items.some((item) => { const options = productById.get(item.product_id)?.variants || []; return options.length > 0 && !options.includes(item.variant_name); })) throw new Error("A selected product option is no longer available. Return to your cart and choose again.");
 
   const pricesById = new Map(products.map((product) => [product.id, Number(product.price)]));
   if ([...pricesById.values()].some((price) => !Number.isFinite(price) || price < 0)) {
@@ -208,6 +209,7 @@ export default function Checkout() {
     () => items.map((item) => ({
       product_id: item.product_id,
       quantity: Number(item.quantity),
+      variant_name: item.variant_name || "",
     })),
     [items],
   );
@@ -385,6 +387,7 @@ export default function Checkout() {
       const orderItems = items.map((item) => ({
         product_id: item.product_id,
         quantity: Number(item.quantity),
+        variant_name: item.variant_name || "",
       }));
 
       const completeAddress = [
@@ -1068,7 +1071,7 @@ export default function Checkout() {
             <div className="mt-5 space-y-4 max-h-64 overflow-y-auto">
               {items.map((item) => (
                 <div
-                  key={item.product_id}
+                  key={`${item.product_id}:${item.variant_name || ""}`}
                   className="flex gap-3"
                 >
                   <div className="w-14 h-14 bg-white border border-border shrink-0 overflow-hidden">
@@ -1085,6 +1088,7 @@ export default function Checkout() {
                     <p className="font-semibold text-sm text-carbon truncate">
                       {item.name}
                     </p>
+                    {item.variant_name && <p className="text-xs text-blue-700">Option: {item.variant_name}</p>}
 
                     <p className="text-xs text-muted-foreground mt-1">
                       Qty: {item.quantity}
