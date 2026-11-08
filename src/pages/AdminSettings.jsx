@@ -10,15 +10,15 @@ const DEFAULT_SETTINGS = {
   store_name: "JT",
   tagline: "Tech for the life you’re building.",
   email: "",
-  phone: "",
-  whatsapp: "",
+  phone: "027 786 9200",
+  whatsapp: "+233 27 786 9200",
   domain: "",
-  snapchat: "",
-  instagram: "",
+  snapchat: "JTPO_S",
+  instagram: "JTPO_S",
   facebook: "",
-  tiktok: "",
+  tiktok: "JTPO_S",
   address: "",
-  x: "",
+  x: "JTPO_S",
   business_latitude: 5.603717,
   business_longitude: -0.186964,
   delivery_rate: 10,
@@ -83,7 +83,13 @@ export default function AdminSettings() {
       } else if (!data) {
         setError("The store settings row is missing in Supabase.");
       } else {
-        setSettings({ ...DEFAULT_SETTINGS, ...data });
+        const loadedSettings = { ...DEFAULT_SETTINGS, ...data };
+        for (const field of ["phone", "whatsapp", "snapchat", "instagram", "tiktok", "x"]) {
+          if (typeof data[field] !== "string" || !data[field].trim()) {
+            loadedSettings[field] = DEFAULT_SETTINGS[field];
+          }
+        }
+        setSettings(loadedSettings);
       }
       setLoading(false);
     }
