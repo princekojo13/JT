@@ -64,7 +64,7 @@ export default function Wholesale() {
               </p>
 
               <Link
-                to="/contact"
+                to="/contact?topic=Wholesale"
                 className="flex w-full items-center justify-center gap-2 bg-carbon py-3.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-pink hover:text-carbon"
               >
                 Send a wholesale enquiry

@@ -136,17 +136,17 @@ export default function Footer() {
               </li>}
 
               {settings.phone && <li>
-                <span className="inline-flex items-center gap-2">
+                <a href={settings.whatsapp ? whatsappLink(settings.whatsapp, "Hi JT, I’m contacting you about phone support.") : "/contact"} target={settings.whatsapp ? "_blank" : undefined} rel={settings.whatsapp ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 transition-colors hover:text-pink">
                   <Phone className="h-4 w-4" />
-                  {settings.phone}
-                </span>
+                  WhatsApp about phone support · {settings.phone}
+                </a>
               </li>}
 
               {settings.email && <li>
-                <span className="inline-flex items-center gap-2 break-all">
+                <a href={settings.whatsapp ? whatsappLink(settings.whatsapp, "Hi JT, I’m contacting you about customer support.") : "/contact"} target={settings.whatsapp ? "_blank" : undefined} rel={settings.whatsapp ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 break-all transition-colors hover:text-pink">
                   <Mail className="h-4 w-4 shrink-0" />
-                  {settings.email}
-                </span>
+                  WhatsApp about email support · {settings.email}
+                </a>
               </li>}
             </ul>
 
