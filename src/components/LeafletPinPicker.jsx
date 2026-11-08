@@ -19,6 +19,39 @@ const GHANA_BOUNDS = [
 const locationSearchCache = new Map();
 let lastLocationSearchAt = 0;
 
+async function searchPhotonInBrowser(query) {
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", `${query}, Ghana`);
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("lang", "en");
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error("Location search is temporarily unavailable.");
+  const payload = await response.json();
+  return Array.isArray(payload?.features) ? payload.features.flatMap((feature, index) => {
+    const coordinates = feature?.geometry?.coordinates;
+    const properties = feature?.properties || {};
+    const lon = Number(coordinates?.[0]);
+    const lat = Number(coordinates?.[1]);
+    const country = typeof properties.country === "string" ? properties.country : "";
+    if (
+      !Number.isFinite(lat) || !Number.isFinite(lon) ||
+      lat < 4.5 || lat > 11.5 || lon < -3.5 || lon > 1.5 ||
+      (country && country.toLocaleLowerCase() !== "ghana")
+    ) return [];
+    const displayName = [...new Set([
+      properties.name,
+      properties.city || properties.district || properties.county,
+      properties.state,
+      country || "Ghana",
+    ].filter((part) => typeof part === "string" && part.trim()))].join(", ");
+    if (!displayName) return [];
+    return [{ place_id: String(properties.osm_id || `photon-${index}-${lat}-${lon}`), lat, lon, display_name: displayName }];
+  }) : [];
+}
+
 function MapClickHandler({ onSelect }) {
   useMapEvents({
     click(event) {
@@ -85,29 +118,36 @@ export default function LeafletPinPicker({ location, onSelect }) {
       // Search runs only on submit, and this client-wide delay and cache keep
       // repeat requests to the free community geocoder low.
       lastLocationSearchAt = Date.now();
-      const { data, error } = await supabase.functions.invoke("search-location", {
-        body: { query: term },
-      });
-      if (error) throw new Error("Location search is temporarily unavailable. You can still place the pin on the map.");
-      if (data?.error) throw new Error(data.error);
-      const places = Array.isArray(data?.places) ? data.places.flatMap((place) => {
-        const lat = Number(place?.lat);
-        const lng = Number(place?.lon);
-        const displayName = place?.display_name;
-        if (
-          !displayName ||
-          !Number.isFinite(Number(lat)) ||
-          !Number.isFinite(Number(lng)) ||
-          Number(lat) < 4.5 || Number(lat) > 11.5 ||
-          Number(lng) < -3.5 || Number(lng) > 1.5
-        ) return [];
-        return [{
-          place_id: String(place.place_id || `${place.osm_type || "place"}-${place.osm_id || `${lat}-${lng}`}`),
-          lat: Number(lat),
-          lon: lng,
-          display_name: displayName,
-        }];
-      }) : [];
+      let places;
+      try {
+        const { data, error } = await supabase.functions.invoke("search-location", {
+          body: { query: term },
+        });
+        if (error) throw new Error("Edge location search failed.");
+        if (data?.error) throw new Error(data.error);
+        places = Array.isArray(data?.places) ? data.places.flatMap((place) => {
+          const lat = Number(place?.lat);
+          const lng = Number(place?.lon);
+          const displayName = place?.display_name;
+          if (
+            !displayName ||
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lng) ||
+            lat < 4.5 || lat > 11.5 ||
+            lng < -3.5 || lng > 1.5
+          ) return [];
+          return [{
+            place_id: String(place.place_id || `${place.osm_type || "place"}-${place.osm_id || `${lat}-${lng}`}`),
+            lat,
+            lon: lng,
+            display_name: displayName,
+          }];
+        }) : [];
+      } catch {
+        // Keep search working if the Supabase function is unavailable; Photon
+        // is a public geocoder and the results are constrained to Ghana here.
+        places = await searchPhotonInBrowser(term);
+      }
       locationSearchCache.set(cacheKey, places);
       setResults(places);
       if (!places.length) setSearchError("No places found in Ghana. Try a nearby town or landmark.");
